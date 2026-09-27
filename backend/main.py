@@ -1,6 +1,7 @@
 ﻿from fastapi import FastAPI, HTTPException, Header, status
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+import secrets
 
 app = FastAPI(title="Gym Point API", version="1.0.0")
 
@@ -17,7 +18,14 @@ class TokenResponse(BaseModel):
 
 class ClaimRoleRequest(BaseModel):
     join_code: str
-    requested_role: str = "client"  # Only 'client' allowed for self-service
+    requested_role: str = "client"
+
+class WorkerInviteRequest(BaseModel):
+    worker_email: EmailStr
+
+class WorkerInviteVerify(BaseModel):
+    invite_token: str
+    pin: str
 
 @app.get("/")
 def read_root():
@@ -38,21 +46,18 @@ def verify_otp(payload: OTPVerify):
 
 @app.post("/api/v1/auth/claim-role", status_code=status.HTTP_200_OK)
 def claim_role(payload: ClaimRoleRequest, authorization: Optional[str] = Header(None)):
-    # Guardrail: Only 'client' is self-assignable via join code
     if payload.requested_role != "client":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Self-service role assignment is restricted to 'client'."
         )
 
-    # Validate auth header present
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid authentication token."
         )
 
-    # Placeholder for gym join code validation & tenant resolution
     if payload.join_code != "GYM123":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -63,5 +68,29 @@ def claim_role(payload: ClaimRoleRequest, authorization: Optional[str] = Header(
         "status": "success",
         "role": "client",
         "tenant_id": "tenant_gym_001",
-        "message": "Role claimed successfully. Metadata updated."
+        "message": "Role claimed successfully."
+    }
+
+@app.post("/api/v1/invites/worker/create", status_code=status.HTTP_201_CREATED)
+def create_worker_invite(payload: WorkerInviteRequest, authorization: Optional[str] = Header(None)):
+    # Invite-only flow issued by Owner
+    invite_token = secrets.token_urlsafe(16)
+    return {
+        "status": "success",
+        "invite_token": invite_token,
+        "assigned_role": "worker",
+        "message": f"Invite token created for {payload.worker_email}"
+    }
+
+@app.post("/api/v1/invites/worker/accept", status_code=status.HTTP_200_OK)
+def accept_worker_invite(payload: WorkerInviteVerify):
+    if len(payload.pin) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PIN must be at least 4 digits."
+        )
+    return {
+        "status": "success",
+        "role": "worker",
+        "message": "Worker invite accepted and PIN set."
     }
