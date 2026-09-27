@@ -1,2 +1,5 @@
-﻿fastapi
+fastapi
 uvicorn
+sqlalchemy
+passlib[bcrypt]
+pydantic
