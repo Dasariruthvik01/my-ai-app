@@ -1,129 +1,88 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
-import { registerUser } from "./services/api";
+import React, { useState } from 'react';
 
-export default function App() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+function App() {
+  const [joinCode, setJoinCode] = useState('');
+  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
-  const [statusMsg, setStatusMsg] = useState("");
 
-  const handleRegister = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please fill in both email and password.");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!joinCode.trim()) {
+      setStatus('Please enter a join code.');
       return;
     }
 
     setLoading(true);
-    setStatusMsg("");
+    setStatus('');
 
     try {
-      const data = await registerUser(email, password);
-      if (data.id) {
-        setStatusMsg(
-          `Success! Account created for ${data.email} (ID: ${data.id})`,
-        );
-        setEmail("");
-        setPassword("");
+      const response = await fetch('/api/v1/auth/claim-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'Client',
+          join_code: joinCode.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        setStatus('Successfully joined the gym as a Client!');
       } else {
-        setStatusMsg(`Registration failed: ${data.detail || "Unknown error"}`);
+        const data = await response.json().catch(() => ({}));
+        setStatus(`Error: ${data.message || 'Failed to join. Please check your code.'}`);
       }
     } catch (err) {
-      setStatusMsg("Network error: Could not reach FastAPI server.");
+      setStatus('Network error. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>AI App Registration</Text>
+    <div style={{ padding: '2rem', maxWidth: '400px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+      <h1>Gym Onboarding</h1>
+      <p>Welcome! Please enter your gym join code to get started as a Client.</p>
+      
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div>
+          <label htmlFor="joinCode" style={{ display: 'block', marginBottom: '0.5rem' }}>Join Code</label>
+          <input
+            id="joinCode"
+            type="text"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value)}
+            placeholder="Enter code here"
+            disabled={loading}
+            style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
+          />
+        </div>
+        
+        <button 
+          type="submit" 
+          disabled={loading}
+          style={{ 
+            padding: '0.75rem', 
+            fontSize: '1rem', 
+            backgroundColor: loading ? '#ccc' : '#007bff', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loading ? 'Submitting...' : 'Join Gym'}
+        </button>
+      </form>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email Address"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleRegister}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Register Account</Text>
-        )}
-      </TouchableOpacity>
-
-      {statusMsg ? <Text style={styles.statusText}>{statusMsg}</Text> : null}
-    </View>
+      {status && (
+        <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px' }}>
+          {status}
+        </div>
+      )}
+    </div>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0f172a",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#f8fafc",
-    marginBottom: 24,
-  },
-  input: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: "#1e293b",
-    color: "#fff",
-    padding: 14,
-    borderRadius: 8,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  button: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: "#2563eb",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  statusText: {
-    marginTop: 20,
-    color: "#38bdf8",
-    textAlign: "center",
-    fontSize: 14,
-  },
-});
+export default App;
