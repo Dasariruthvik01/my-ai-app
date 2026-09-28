@@ -17,8 +17,15 @@ screens, static content) once a screen has no auth surface.
 3. Run your visual-verification loop against the reference image before
    opening a PR.
 4. If the screen needs something the backend doesn't expose yet, write it
-   to `/handoff/backend-requests.md` — do not stub a fake API response and
-   ship the screen as if the data source were real.
+   to `/handoff/backend-requests.md` and build against a mock **only
+   inside `frontend/services/mock/`**, behind a single `USE_MOCK_API`
+   switch in `frontend/services/api.*`. Mocks must mirror
+   `/contracts/openapi.json` exactly (same field names, same error
+   statuses). Never scatter hardcoded fake data through screens or
+   components, and never mock auth in a way that lets a screen appear
+   "logged in" without a token from the real flow — mock auth returns a
+   clearly labeled dev-only token that is rejected outright when
+   `USE_MOCK_API` is off.
 
 ## Non-negotiable, frontend-specific
 - **Token storage:** use `expo-secure-store` (backed by iOS Keychain /
