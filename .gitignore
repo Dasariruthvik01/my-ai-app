@@ -4,3 +4,11 @@ app.db
 .env
 venv/
 .vscode/
+
+.env
+.env.*
+!.env.example
+node_modules/
+.claude/settings.local.json
+__pycache__/
+.venv/
