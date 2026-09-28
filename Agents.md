@@ -35,6 +35,10 @@ Four roles, tenant-scoped, name locked: **Owner, Trainer, Worker, Client**
 | `/backend` | Gemini CLI | Antigravity never edits files here. If a UI screen needs a backend change, write the request to `/handoff/backend-requests.md` instead of editing directly. |
 | `/frontend` | Antigravity | Gemini CLI never edits files here. |
 | `/AGENTS.md`, `Gym_Point_Master_Spec.md`, `/contracts/*` | Shared, read-only to both agents | Neither agent edits these directly — a human updates them when a decision changes. |
+| Whole repo (read-only) | Claude Code — **Reviewer** | Reviews diffs and pull requests from Gemini CLI and Antigravity against the checklist in `CLAUDE.md`. Reports findings (file, line, severity, why) and never edits application code. Never reads `.env` or secret files. |
+
+Builders never merge their own work to `main`: every change goes through a
+branch and a review pass first.
 
 ## 3. Non-negotiable guardrails (apply regardless of which agent is running)
 
@@ -52,4 +56,4 @@ Four roles, tenant-scoped, name locked: **Owner, Trainer, Worker, Client**
 
 ## 5. Handoff protocol
 
-If Gemini CLI changes an API shape (new field, new endpoint, changed error code), it updates `/contracts/openapi.json` generation and adds a one-line note to `/handoff/changelog.md`. If Antigravity needs something from the backend that doesn't exist yet, it writes the request to `/handoff/backend-requests.md` — it does not stub a fake endpoint and continue as if the backend already supports it.
+If Gemini CLI changes an API shape (new field, new endpoint, changed error code), it updates `/contracts/openapi.json` generation and adds a one-line note to `/handoff/changelog.md`. If Antigravity needs something from the backend that doesn't exist yet, it writes the request to `/handoff/backend-requests.md` and builds against the isolated mock layer described in `frontend/GEMINI.md` (`frontend/services/mock/`, behind one `USE_MOCK_API` switch, mirroring `/contracts/openapi.json` exactly). It does not invent an endpoint shape and scatter fake data through screens.
